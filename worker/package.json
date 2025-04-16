@@ -1,0 +1,8 @@
+{
+  "name": "socialnest-worker",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "oauth4webapi": "^2.1.1"
+  }
+}
