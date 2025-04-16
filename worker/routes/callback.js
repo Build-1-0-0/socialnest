@@ -31,7 +31,7 @@ export default async function callback(request, env) {
 
   const params = url;
   const validation = oauth.validateAuthResponse(as, client, params, state);
-  if (oauth.isOAuth2Error(validation)) {
+  if (validation.error) {
     return new Response(`OAuth error: ${validation.error}`, { status: 400 });
   }
 
@@ -45,7 +45,7 @@ export default async function callback(request, env) {
   );
 
   const result = await oauth.processAuthorizationCodeResponse(as, client, response);
-  if (oauth.isOAuth2Error(result)) {
+  if (result.error) {
     return new Response(`OAuth error: ${result.error}`, { status: 400 });
   }
 
