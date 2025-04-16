@@ -1,6 +1,7 @@
 import login from './routes/login';
 import callback from './routes/callback';
 import home from './routes/home';
+import profile from './routes/profile'; // <-- add this line
 import notFound from './routes/notFound';
 
 export default {
@@ -19,6 +20,9 @@ export default {
 
         case '/callback':
           return callback(request, env, ctx);
+
+        case '/profile': // <-- handle /profile route
+          return profile(request, env, ctx);
 
         default:
           return notFound(request);
