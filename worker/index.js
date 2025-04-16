@@ -1,50 +1,105 @@
-import { OAuth2Client } from 'oauth4webapi';
+import * as oauth from 'oauth4webapi';
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    console.log(`Request URL: ${url.pathname}`);
 
+    // Twitter OAuth endpoints (manual discovery)
+    const as = {
+      issuer: 'https://twitter.com',
+      authorization_endpoint: 'https://twitter.com/i/oauth2/authorize',
+      token_endpoint: 'https://api.twitter.com/2/oauth2/token',
+    };
+
+    const client = {
+      client_id: env.TWITTER_CLIENT_ID,
+    };
+
+    const client_secret = env.TWITTER_CLIENT_SECRET;
+    const redirect_uri = env.TWITTER_CALLBACK_URL;
+    const clientAuth = oauth.ClientSecretPost(client_secret);
+
+    const code_challenge_method = 'S256';
+
+    // === /login route ===
     if (url.pathname === '/login') {
-      const client = new OAuth2Client({
-        client_id: env.TWITTER_CLIENT_ID,
-        client_secret: env.TWITTER_CLIENT_SECRET,
-        token_endpoint: 'https://api.twitter.com/2/oauth2/token',
-        redirect_uri: env.TWITTER_CALLBACK_URL,
+      const code_verifier = oauth.generateRandomCodeVerifier();
+      const code_challenge = await oauth.calculatePKCECodeChallenge(code_verifier);
+      const state = oauth.generateRandomState();
+
+      // Save code_verifier to KV using state as key
+      await env.SESSIONS.put(`state:${state}`, JSON.stringify({ code_verifier }), {
+        expirationTtl: 300, // 5 minutes
       });
 
-      const authUrl = new URL('https://twitter.com/i/oauth2/authorize');
+      const authUrl = new URL(as.authorization_endpoint);
       authUrl.searchParams.set('response_type', 'code');
-      authUrl.searchParams.set('client_id', env.TWITTER_CLIENT_ID);
-      authUrl.searchParams.set('redirect_uri', env.TWITTER_CALLBACK_URL);
-      authUrl.searchParams.set('scope', 'tweet.read users.read');
-      authUrl.searchParams.set('state', crypto.randomUUID());
-      authUrl.searchParams.set('code_challenge', 'challenge'); // Add PKCE if needed
-      authUrl.searchParams.set('code_challenge_method', 'plain');
+      authUrl.searchParams.set('client_id', client.client_id);
+      authUrl.searchParams.set('redirect_uri', redirect_uri);
+      authUrl.searchParams.set('scope', 'tweet.read users.read offline.access');
+      authUrl.searchParams.set('state', state);
+      authUrl.searchParams.set('code_challenge', code_challenge);
+      authUrl.searchParams.set('code_challenge_method', code_challenge_method);
 
       return Response.redirect(authUrl.toString(), 302);
     }
 
+    // === /callback route ===
     if (url.pathname === '/callback') {
+      const state = url.searchParams.get('state');
       const code = url.searchParams.get('code');
-      const client = new OAuth2Client({
-        client_id: env.TWITTER_CLIENT_ID,
-        client_secret: env.TWITTER_CLIENT_SECRET,
-        token_endpoint: 'https://api.twitter.com/2/oauth2/token',
-        redirect_uri: env.TWITTER_CALLBACK_URL,
-      });
 
-      const result = await client.requestAccessToken(code);
-      const token = result.access_token;
+      if (!state || !code) {
+        return new Response('Missing state or code.', { status: 400 });
+      }
 
-      console.log('Access token:', token);
+      // Retrieve code_verifier from KV
+      const stored = await env.SESSIONS.get(`state:${state}`, { type: 'json' });
+      if (!stored || !stored.code_verifier) {
+        return new Response('Invalid or expired session state.', { status: 400 });
+      }
 
-      // Optional: Save user to DB (pseudo-code)
-      // await env.DB.prepare(`INSERT INTO users (token) VALUES (?)`).bind(token).run();
+      const code_verifier = stored.code_verifier;
 
-      return new Response('Twitter login successful. Token stored.');
+      // Validate the auth response
+      const validation = oauth.validateAuthResponse(as, client, url, state);
+      if (oauth.isOAuth2Error(validation)) {
+        return new Response(`OAuth error: ${validation.error}`, { status: 400 });
+      }
+
+      // Request access token
+      const tokenResponse = await oauth.authorizationCodeGrantRequest(
+        as,
+        client,
+        clientAuth,
+        validation,
+        redirect_uri,
+        code_verifier
+      );
+
+      const result = await oauth.processAuthorizationCodeResponse(as, client, tokenResponse);
+      if (oauth.isOAuth2Error(result)) {
+        return new Response(`OAuth error: ${result.error}`, { status: 400 });
+      }
+
+      const { access_token, refresh_token, expires_in, token_type } = result;
+
+      // Cleanup
+      await env.SESSIONS.delete(`state:${state}`);
+
+      return new Response(
+        JSON.stringify({
+          message: 'Login successful!',
+          access_token,
+          refresh_token,
+          expires_in,
+          token_type,
+        }, null, 2),
+        { headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
+    // Default response
     return new Response('Not Found', { status: 404 });
-  },
+  }
 };
