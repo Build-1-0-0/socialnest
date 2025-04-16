@@ -7,9 +7,13 @@ compatibility_date = "2025-04-16"
 enabled = true
 
 [vars]
-TWITTER_CLIENT_ID = "env.TWITTER_CLIENT_ID"
-TWITTER_CLIENT_SECRET = "env.TWITTER_CLIENT_SECRET"
-TWITTER_CALLBACK_URL = "env.TWITTER_CALLBACK_URL"
+TWITTER_CLIENT_ID = "your-twitter-client-id"
+TWITTER_CLIENT_SECRET = "your-twitter-client-secret"
+TWITTER_CALLBACK_URL = "https://yourdomain.com/callback"
+
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "36c4bd45cf1d4a9f92206321ecc0f91e"
 
 [[d1_databases]]
 binding = "DB"
