@@ -1,0 +1,26 @@
+name = "socialnest"
+main = "worker/index.js"
+compatibility_date = "2024-04-16"
+log_level = "debug"  # Options: "debug", "info", "warn", "error"
+
+# Send logs to Cloudflare dashboard
+usage_model = "bundled"
+
+# Environment variables from cloudflare.env
+[vars]
+TWITTER_CLIENT_ID = "env.TWITTER_CLIENT_ID"
+TWITTER_CLIENT_SECRET = "env.TWITTER_CLIENT_SECRET"
+TWITTER_CALLBACK_URL = "env.TWITTER_CALLBACK_URL"
+
+# Bind D1 database
+[[d1_databases]]
+binding = "DB"
+database_name = "socialnest"
+database_id = "9a60624f-a1da-444f-9d8d-42e92528f44d"
+
+# Enable observability preview (optional, for advanced tracing/logging)
+[triggers]
+crons = []  # if you ever use scheduled workers
+
+[env.cloudflare]
+log_level = "debug"
