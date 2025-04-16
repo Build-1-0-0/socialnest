@@ -1,43 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import Profile from './components/Profile';
+import React, { Suspense, lazy } from 'react';
+import { Routes, Route } from 'react-router-dom';
 
-const App = () => {
-  const [user, setUser] = useState(null);
+// Lazy-loaded pages
+const Home = lazy(() => import('./pages/Home'));
+const Profile = lazy(() => import('./pages/Profile'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
-  useEffect(() => {
-    // Try fetching the user's profile from the backend
-    const fetchProfile = async () => {
-      try {
-        const res = await fetch('/profile');
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data);
-        }
-      } catch (err) {
-        console.error('Failed to fetch profile:', err);
-      }
-    };
-
-    fetchProfile();
-  }, []);
-
-  const handleLogin = () => {
-    window.location.href = '/login'; // Redirect to backend login
-  };
-
+function App() {
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      <h1>Twitter OAuth with React</h1>
-      {!user ? (
-        <div>
-          <p>You are not logged in.</p>
-          <button onClick={handleLogin}>Login with Twitter</button>
-        </div>
-      ) : (
-        <Profile user={user} />
-      )}
-    </div>
+    <Suspense fallback={<div className="p-4 text-center">Loading...</div>}>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   );
-};
+}
 
 export default App;
