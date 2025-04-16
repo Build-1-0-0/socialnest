@@ -5,12 +5,29 @@ import notFound from './routes/notFound';
 
 export default {
   async fetch(request, env, ctx) {
-    const url = new URL(request.url);
+    try {
+      const url = new URL(request.url);
+      const pathname = url.pathname;
 
-    if (url.pathname === '/') return home(request, env, ctx);
-    if (url.pathname === '/login') return login(request, env, ctx);
-    if (url.pathname === '/callback') return callback(request, env, ctx);
+      switch (pathname) {
+        case '/':
+        case '/home':
+          return home(request, env, ctx);
 
-    return notFound(request);
+        case '/login':
+          return login(request, env, ctx);
+
+        case '/callback':
+          return callback(request, env, ctx);
+
+        default:
+          return notFound(request);
+      }
+    } catch (err) {
+      return new Response(`Internal Server Error: ${err.message}`, {
+        status: 500,
+        headers: { 'Content-Type': 'text/plain' },
+      });
+    }
   },
 };
