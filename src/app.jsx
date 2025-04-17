@@ -1,9 +1,8 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 
-// Lazy-loaded pages
 const Home = lazy(() => import('./components/Home'));
-const profile = lazy(() => import('./components/profile'));
+const Profile = lazy(() => import('./components/profile')); // Fixed casing
 const NotFound = lazy(() => import('./components/NotFound'));
 
 function App() {
