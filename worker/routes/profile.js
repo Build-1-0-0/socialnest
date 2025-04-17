@@ -7,7 +7,7 @@ export default async function profile(request, env) {
       return new Response('Missing state/session.', { status: 400 });
     }
 
-    // Look up session in KV (or other storage)
+    // Retrieve session from KV storage
     const session = await env.SESSIONS.get(`state:${state}`);
     if (!session) {
       return new Response('Session expired or not found.', { status: 403 });
@@ -20,7 +20,7 @@ export default async function profile(request, env) {
       return new Response('No user ID found in session.', { status: 403 });
     }
 
-    // Fetch user profile from D1 DB
+    // Fetch profile from D1 database
     const { results } = await env.DB.prepare(
       `SELECT twitter_id, username, name, profile_image_url FROM users WHERE twitter_id = ?`
     ).bind(userId).all();
@@ -31,24 +31,33 @@ export default async function profile(request, env) {
 
     const user = results[0];
 
-    // Build HTML response (or return JSON)
+    // Basic sanitization (optional: use libraries for full protection)
+    const escapeHTML = (str) =>
+      str.replace(/[&<>'"]/g, (c) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c])
+      );
+
     const html = `
       <!DOCTYPE html>
       <html>
-      <head><title>Profile</title></head>
+      <head>
+        <title>${escapeHTML(user.name)}'s Profile</title>
+        <style>
+          body { font-family: sans-serif; text-align: center; margin-top: 50px; }
+          img { border-radius: 50%; width: 120px; height: 120px; margin-top: 20px; }
+        </style>
+      </head>
       <body>
-        <h1>Welcome, ${user.name}</h1>
-        <p><strong>Username:</strong> ${user.username}</p>
-        <img src="${user.profile_image_url}" alt="Profile Picture" style="border-radius:50%;width:100px;height:100px;">
-        <p><a href="/">Go Home</a></p>
+        <h1>Welcome, ${escapeHTML(user.name)}</h1>
+        <p><strong>Username:</strong> ${escapeHTML(user.username)}</p>
+        <img src="${user.profile_image_url}" alt="Profile Picture">
+        <p><a href="/api/twitter/home">Go Home</a></p>
       </body>
       </html>
     `;
 
     return new Response(html, {
-      headers: {
-        'Content-Type': 'text/html',
-      },
+      headers: { 'Content-Type': 'text/html' },
     });
 
   } catch (err) {
