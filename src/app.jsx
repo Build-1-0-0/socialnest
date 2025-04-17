@@ -3,7 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 
 // Lazy-loaded pages
 const Home = lazy(() => import('./components/Home'));
-const Profile = lazy(() => import('./components/Profile'));
+const profile = lazy(() => import('./components/profile'));
 const NotFound = lazy(() => import('./components/NotFound'));
 
 function App() {
