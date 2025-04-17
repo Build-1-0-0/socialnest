@@ -2,9 +2,9 @@ import React, { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 
 // Lazy-loaded pages
-const Home = lazy(() => import('./pages/Home'));
-const Profile = lazy(() => import('./pages/Profile'));
-const NotFound = lazy(() => import('./pages/NotFound'));
+const Home = lazy(() => import('./components/Home'));
+const Profile = lazy(() => import('./components/Profile'));
+const NotFound = lazy(() => import('./components/NotFound'));
 
 function App() {
   return (
